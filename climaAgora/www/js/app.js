@@ -3,7 +3,8 @@
 // angular.module is a global place for creating, registering and retrieving Angular modules
 // 'starter' is the name of this angular module example (also set in a <body> attribute in index.html)
 // the 2nd parameter is an array of 'requires'
-var climaApp = angular.module('climaApp', ['ionic']);
+var climaApp = angular.module('climaApp', ['ionic','ngCordova']);
+var db = null;
 
 climaApp.run(function($ionicPlatform) {
   $ionicPlatform.ready(function() {
@@ -15,12 +16,16 @@ climaApp.run(function($ionicPlatform) {
     if(window.StatusBar) {
       StatusBar.styleDefault();
     }
+    
+    bd = $cordovaSQLite.openDB({name:"my.db"});
+    $cordovaSQLite.execute(db, "CREATE TABLE IF NOT EXISTS clima (id INTEGET NOT NULL PRIMARY KEY, temperatura text)")
+      
   });
 })
 
-climaApp.controller("climaCtrl",["$scope","$ionicLoading","climaSvc",climaCtrl])
+climaApp.controller("climaCtrl",["$scope","$ionicLoading","$cordovaSQLite","climaSvc",climaCtrl])
 
-function climaCtrl($scope, $ionicLoading, climaSvc){
+function climaCtrl($scope, $ionicLoading, $cordovaSQLite, climaSvc){
     $scope.cidade = "---";
     $scope.temperatura = "ND";
     
@@ -29,6 +34,7 @@ function climaCtrl($scope, $ionicLoading, climaSvc){
     
     //Função invocada ao carregar Temperatura.
     $scope.$on("climaApp.temperatura", function(_,result){
+        $scope.insert($scope.temperatura);
         $scope.cidade = result.name;
         $scope.img = "http://openweathermap.org/img/w/" + result.weather[0].icon + ".png";
         $scope.descricao = result.weather[0].description;
@@ -43,12 +49,45 @@ function climaCtrl($scope, $ionicLoading, climaSvc){
         
     }); //Fim do climaApp.temperatura
     
+    
+    $scope.$on("climaApp.temperaturaErro", function(_,result){
+        $scope.select();
+        $scope.cidade       = "bd";
+        $scope.img          = "bd";
+        $scope.descricao    = "bd";
+        $scope.temperatura  = "bd";
+        $scope.min          = "bd";
+        $scope.max          = "bd";
+        $scope.pressao      = "bd";
+        $scope.long         = "bd";
+        $scope.lat          = "bd";
+        $scope.vento        = "bd";
+        $scope.umidade      = "bd";
+        
+    }); //Fim do climaApp.temperatura
+    
+    
     $scope.reloadClima = function(){
         console.log("Reload Clima");
         climaSvc.loadClima();
         $scope.$broadcast("scroll.infiniteScrollComplete");
         $scope.$broadcast("scroll.refreshComplete");
     }
+    
+    
+    $scope.insert = function(temperatura){
+        var query = "INSERT INTO clima (temperatura) VALUES (?)";
+        $cordovaSQLite.execute(db.query)
+    
+    }
+    
+    $scope.select = function(){
+        var query = "INSERT INTO clima (temperatura) VALUES (?)";
+        $cordovaSQLite.execute(db.query)
+    
+    }
+    
+    
     
 } //Fim do Controller
 
@@ -67,6 +106,7 @@ function climaSvc($http,$rootScope){
         ).error(
             function(result){
                 console.log("Erro ao carregar Temperatura!");
+                $rootScope.$broadcast("climaApp.temperaturaErro");
             }
         );
     }
